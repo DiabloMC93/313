@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Edema Agudo de Pulmón</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #f8fafc;
+        }
+        .option-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .option-card:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background-color: #1e293b;
+            border-color: #38bdf8;
+        }
+        .correct {
+            background-color: #064e3b !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+        }
+        .incorrect {
+            background-color: #7f1d1d !important;
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <div id="app" class="w-full max-w-4xl bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-800">
+        <!-- Header con Contadores -->
+        <div class="bg-slate-950 p-6 flex flex-wrap justify-between items-center gap-4 border-b border-slate-800">
+            <div>
+                <span class="text-xs text-cyan-500 uppercase tracking-widest font-bold">Estado del Examen</span>
+                <div class="text-2xl font-black text-white" id="progress-text">1 / 31</div>
+            </div>
+            <div class="flex gap-3">
+                <div class="px-4 py-2 bg-emerald-950/40 border border-emerald-500/50 rounded-2xl flex flex-col items-center min-w-[90px]">
+                    <span class="text-[10px] text-emerald-400 font-bold tracking-tighter">ACIERTOS</span>
+                    <span class="text-2xl font-black text-emerald-400" id="hits">0</span>
+                </div>
+                <div class="px-4 py-2 bg-rose-950/40 border border-rose-500/50 rounded-2xl flex flex-col items-center min-w-[90px]">
+                    <span class="text-[10px] text-rose-400 font-bold tracking-tighter">ERRORES</span>
+                    <span class="text-2xl font-black text-rose-400" id="misses">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="w-full h-1.5 bg-slate-800">
+            <div id="progress-bar" class="h-full bg-cyan-500 transition-all duration-700 ease-out" style="width: 0%"></div>
+        </div>
+
+        <!-- Pantalla de Pregunta -->
+        <div class="p-6 md:p-10" id="quiz-body">
+            <div class="mb-8">
+                <p id="question-text" class="text-xl md:text-2xl font-medium leading-relaxed text-slate-100"></p>
+            </div>
+            
+            <div id="options-container" class="grid gap-3">
+                <!-- Opciones dinámicas -->
+            </div>
+
+            <div class="mt-10 flex justify-between items-center">
+                <p id="feedback-text" class="text-sm font-medium italic text-slate-400"></p>
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-cyan-600 hover:bg-cyan-500 text-white px-10 py-4 rounded-2xl font-black transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-cyan-900/20">
+                    SIGUIENTE
+                </button>
+            </div>
+        </div>
+
+        <!-- Pantalla de Resultados -->
+        <div id="result-screen" class="hidden p-12 text-center">
+            <div class="mb-6 inline-flex p-4 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <h2 class="text-4xl font-black mb-2 text-white">¡Test Finalizado!</h2>
+            <p class="text-slate-400 mb-8">Has completado el repaso sobre Edema Agudo de Pulmón.</p>
+            
+            <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto mb-10">
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                    <div class="text-3xl font-black text-emerald-400" id="final-hits">0</div>
+                    <div class="text-xs font-bold text-slate-500">ACIERTOS</div>
+                </div>
+                <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                    <div class="text-3xl font-black text-rose-400" id="final-misses">0</div>
+                    <div class="text-xs font-bold text-slate-500">ERRORES</div>
+                </div>
+            </div>
+
+            <button onclick="restartQuiz()" class="bg-white text-slate-950 px-12 py-4 rounded-2xl font-black hover:bg-slate-200 transition-colors shadow-xl">
+                REINTENTAR TEST
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            { q: "1. Es frecuente que con el tratamiento diurético del edema agudo de pulmón se produzca...", o: ["Una pérdida de potasio y magnesio.", "Una pérdida de sodio.", "No se produce ninguna pérdida.", "Una pérdida de sodio y magnesio."], a: 0 },
+            { q: "2. ¿Cuál de los siguientes no es un factor de riesgo del edema agudo de pulmón?", o: ["Embolia pulmonar y sistémica.", "Insuficiencia respiratoria.", "Insuficiencia renal.", "Hipertensión intracraneal."], a: 3 },
+            { q: "3. ¿Qué dos tipos de edema pulmonar existen?", o: ["Edema de pulmón cardiogénico y embolia pulmonar.", "Edema agudo de pulmón y edema crónico de pulmón.", "Edema de pulmón cardiogénico y no cardiogénico.", "Todas son falsas."], a: 2 },
+            { q: "4. ¿Qué diagnóstico de enfermería corresponde al Edema Agudo de pulmón?", o: ["Ansiedad.", "Exceso de volumen de líquidos.", "Riesgo de disminución de la perfusión tisular cardíaca.", "Riesgo de disminución de gasto cardiaco."], a: 1 },
+            { q: "5. ¿Qué consecuencia se produce a corto plazo en el edema de pulmón?", o: ["Hipoxemia.", "Cianosis.", "Atelectasia.", "A y b son correctas."], a: 3 },
+            { q: "6. El edema agudo de pulmón normalmente es consecuencia de:", o: ["Insuficiencia cardiaca congestiva.", "Aneurisma.", "Arritmia cardiaca.", "Fibrilación auricular."], a: 0 },
+            { q: "7. Es falso en las actividades de enfermería del Edema Agudo de pulmón:", o: ["Es necesario EKG.", "Oxigenoterapia.", "Posición que facilite el retorno venoso (Fowler).", "Todas las verdaderas, no hay falsas."], a: 2 },
+            { q: "8. En el tratamiento de Edema Agudo de pulmón, es cierto:", o: ["En hipotensión, se emplea dopamina 0,5-3 microgramos/kg/min para producir vasodilatación.", "Se utiliza morfina cuando hay hipotensión.", "En hipotensión, utilizamos una dosis de 80 microgramos/kg/min de dopamina para producir vasoconstricción periférica.", "Se utiliza nitroglicerina para producir vasoconstricción."], a: 2 },
+            { q: "9. Señala la causa del Edema Agudo de pulmón:", o: ["Disminución del pulso tibial.", "Fallo en el lado izquierdo del corazón.", "El origen es hepático.", "Se debe a un aumento de la PIC (presión intracraneal)."], a: 1 },
+            { q: "10. En caso de hipertensión en edema agudo de pulmón hay que solventar con:", o: ["Solo dopamina", "Captopril", "Captopril y nitroprusiato sódico", "Dobutamina"], a: 2 },
+            { q: "11. Indique la respuesta falsa sobre los objetivos del tratamiento de Edema Agudo de Pulmón:", o: ["Corregir las causas y mecanismos desencadenantes.", "Mejorar la ventilación y el trabajo pulmonar", "Reducir la hipertensión venocapilar pulmonar", "Aumentar el retorno venoso"], a: 3 },
+            { q: "12. La definición “acumulación de líquido en el intersticio y en los alvéolos pulmonares” corresponde a:", o: ["Shock hipovolémico", "Tromboembolismo pulmonar", "Edema agudo de pulmón", "Pleuritis"], a: 2 },
+            { q: "13. El origen del edema agudo de pulmón puede ser:", o: ["Cardíaco", "No cardíaco", "a y b son correctas", "Únicamente tiene origen pulmonar"], a: 2 },
+            { q: "14. Primera actuación ante un EAP", o: ["Canalizar dos vías venosas periféricas", "Perfusión de dobutamina c/24h", "Colocar al paciente en posición de fowler o sentado y oxigenoterapia", "Anamnesis para conocer sus hábitos de alimentación actuales"], a: 2 },
+            { q: "15. ¿Cuál de las siguientes patologías no está asociada con el riesgo de padecer edema agudo de pulmón?", o: ["Anemia megaloblástica", "Insuficiencia cardiaca", "Insuficiencia renal o respiratoria", "IAM"], a: 0 },
+            { q: "16. ¿Qué signos son característicos del Edema Agudo de Pulmón?", o: ["Hemoptisis", "Epistaxis", "Ortopnea", "A y C son correctas."], a: 3 },
+            { q: "17. ¿Qué se producirá en el Edema Agudo de Pulmón?", o: ["Acidosis Respiratoria", "Acidosis Metabólica", "Alcalosis Respiratoria", "Alcalosis Metabólica"], a: 2 },
+            { q: "18. Con respecto a los cuidados de enfermería en el Edema Agudo de Pulmón, señale la correcta:", o: ["Se debe sentar al paciente y tomar la presión arterial", "Hay que proporcionarle oxígeno y tomar la presión arterial", "A y B son correctas", "Estos cuidados pertenecen al shock cardiogénico"], a: 2 },
+            { q: "19. ¿Cuál de estos síntomas no corresponde al edema agudo de pulmón?", o: ["Disnea", "Hemoptisis", "Ortopnea", "Dolor pleurítico"], a: 3 },
+            { q: "20. Respecto a los factores atenuantes del edema agudo de pulmón, indica el correcto:", o: ["Posición.", "Oxigenoterapia", "Tratamiento farmacológico.", "A, B, C son ciertas."], a: 3 },
+            { q: "21. De cual de estas enfermedades es exclusiva la ortopnea:", o: ["Tromboembolismo pulmonar.", "Edema agudo de pulmón.", "Shock cardiogénico.", "Todas son correctas."], a: 1 },
+            { q: "22. En el edema agudo de pulmón:", o: ["El paciente se presenta hipertenso.", "El paciente se presenta normotenso.", "El paciente se presenta hipotenso.", "El paciente puede presentarse hipertenso, normotenso o hipotenso."], a: 3 },
+            { q: "23. En el edema agudo de pulmón, ¿que situación es de mayor gravedad?", o: ["Paciente hipertenso.", "Paciente esté normotenso.", "Paciente hipotenso.", "Ninguna es correcta"], a: 2 },
+            { q: "24. En el edema agudo de pulmón es típico:", o: ["Esputo sanguinolento, color rojo intenso.", "Esputo mucoso anaranjado.", "Esputo sonrosado o salmón.", "Esputo translúcido de color blanco."], a: 2 },
+            { q: "25. En el edema agudo de pulmón el paciente respira mejor:", o: ["Sentado.", "De cubito supino.", "De cúbito prono.", "El paciente respira con normalidad."], a: 0 },
+            { q: "26. ¿Qué presión depende de la concentración de proteínas en la sangre y facilita el desplazamiento de líquido al interior del vaso?", o: ["Presión hidrostática.", "Presión oncótica.", "Presión pulmonar.", "Ninguna es correcta."], a: 1 },
+            { q: "27. ¿Qué podemos apreciar en una radiografía de tórax de un paciente con EAP?", o: ["Ángulos costofrénicos bien delimitados.", "Líneas de Kerly.", "Disminución del índice cardiotorácico.", "Ninguna es correcta."], a: 1 },
+            { q: "28. ¿A qué parte afecta fundamentalmente el EAP?", o: ["Ventrículo derecho.", "Ventrículo izquierdo.", "Aurícula derecha.", "Aurícula izquierda."], a: 1 },
+            { q: "29. Indica cuál de las siguientes es falsa con respecto a las causas del edema agudo de pulmón cardiogénico:", o: ["IAM.", "Cardiopatía hipertensiva crónica descompensada.", "Valvulopatía mitral y/o aórtica.", "Todas son falsas."], a: 3 },
+            { q: "30. Una de las actividades de la prevención del EAP es:", o: ["Fumar con moderación.", "No realizar mucho ejercicio físico.", "Hacer relajaciones diarias para disminuir el estrés.", "Control de la diabetes cada 2 años."], a: 2 },
+            { q: "31. El EAP no cardiogénico:", o: ["El llenado alveolar es más tardío que en el EAP cardiogénico.", "El llenado alveolar no se ve alterado.", "El llenado alveolar es más temprano que en el EAP cardiogénico.", "Ninguna de las anteriores."], a: 2 }
+        ];
+
+        let currentIdx = 0;
+        let hits = 0;
+        let misses = 0;
+        let answered = false;
+
+        function updateUI() {
+            const progress = ((currentIdx) / quizData.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+            document.getElementById('progress-text').textContent = `${currentIdx + 1} / ${quizData.length}`;
+            document.getElementById('hits').textContent = hits;
+            document.getElementById('misses').textContent = misses;
+        }
+
+        function renderQuestion() {
+            answered = false;
+            const item = quizData[currentIdx];
+            document.getElementById('question-text').textContent = item.q;
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('feedback-text').textContent = "Selecciona una opción...";
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            item.o.forEach((option, i) => {
+                const btn = document.createElement('button');
+                btn.className = "option-card w-full text-left p-5 rounded-2xl border-2 border-slate-800 bg-slate-800/40 flex items-start gap-4 group";
+                btn.innerHTML = `
+                    <span class="w-8 h-8 rounded-lg bg-slate-700 flex-shrink-0 flex items-center justify-center font-bold text-slate-300 group-hover:bg-cyan-600 group-hover:text-white transition-colors">${String.fromCharCode(65 + i)}</span>
+                    <span class="text-slate-200 mt-1">${option}</span>
+                `;
+                btn.onclick = () => selectOption(i, btn);
+                container.appendChild(btn);
+            });
+            updateUI();
+        }
+
+        function selectOption(index, element) {
+            if (answered) return;
+            answered = true;
+            
+            const correctIdx = quizData[currentIdx].a;
+            const buttons = document.querySelectorAll('.option-card');
+            
+            if (index === correctIdx) {
+                hits++;
+                element.classList.add('correct');
+                document.getElementById('feedback-text').innerHTML = "<span class='text-emerald-400 font-bold'>✓ ¡Correcto!</span>";
+            } else {
+                misses++;
+                element.classList.add('incorrect');
+                buttons[correctIdx].classList.add('correct');
+                document.getElementById('feedback-text').innerHTML = "<span class='text-rose-400 font-bold'>✗ Incorrecto</span>";
+            }
+
+            buttons.forEach(b => b.disabled = true);
+            document.getElementById('next-btn').classList.remove('hidden');
+            updateUI();
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < quizData.length) {
+                renderQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('quiz-body').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('final-hits').textContent = hits;
+            document.getElementById('final-misses').textContent = misses;
+        }
+
+        function restartQuiz() {
+            currentIdx = 0;
+            hits = 0;
+            misses = 0;
+            document.getElementById('quiz-body').classList.remove('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            renderQuestion();
+        }
+
+        window.onload = renderQuestion;
+    </script>
+</body>
+</html>
